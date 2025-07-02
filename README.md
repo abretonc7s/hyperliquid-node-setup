@@ -118,6 +118,9 @@ curl http://localhost:3001/info | jq .
 # The response will show:
 # - current_block: The block height your node has synced to
 # - is_synced: Whether your node is fully synced with the network
+
+# Or use the continuous monitor script
+./monitor-sync.sh
 ```
 
 3. View real-time logs:
