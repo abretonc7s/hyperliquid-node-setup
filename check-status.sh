@@ -42,21 +42,43 @@ fi
 
 echo ""
 echo "Network connections:"
-ss -tuln | grep -E "4001|4002" || echo "No connections on ports 4001/4002"
+ss -tuln | grep -E "4001|4002|3001" || echo "No connections on expected ports"
 
 echo ""
 echo "Disk usage:"
 du -sh "$HYPERLIQUID_HOME/hl/data" 2>/dev/null || echo "No data directory found"
 
+# Check if info endpoint is available
+echo ""
+echo "Node info endpoint:"
+if curl -s http://localhost:3001/info > /dev/null 2>&1; then
+    echo "✓ Info endpoint available at http://localhost:3001/info"
+    curl -s http://localhost:3001/info | jq . 2>/dev/null || curl -s http://localhost:3001/info
+elif curl -s http://localhost:4001/info > /dev/null 2>&1; then
+    echo "✓ Info endpoint available at http://localhost:4001/info"
+    curl -s http://localhost:4001/info | jq . 2>/dev/null || curl -s http://localhost:4001/info
+else
+    echo "✗ Info endpoint not yet available (node may still be starting)"
+fi
+
 echo ""
 echo "Recent logs:"
 if [ -f "$HYPERLIQUID_HOME/hl/logs/node.log" ]; then
+    echo "From node.log:"
     tail -n 20 "$HYPERLIQUID_HOME/hl/logs/node.log"
 else
     # Try to get logs from running process
     if systemctl is-active --quiet hyperliquid-node; then
+        echo "From systemd journal:"
         journalctl -u hyperliquid-node -n 20 --no-pager
     else
         echo "No log files found"
     fi
+fi
+
+# Look for sync status in logs
+echo ""
+echo "Sync status (from logs):"
+if [ -f "$HYPERLIQUID_HOME/hl/logs/node.log" ]; then
+    grep -i "height\|sync\|block" "$HYPERLIQUID_HOME/hl/logs/node.log" | tail -5 || echo "No sync information found in logs yet"
 fi

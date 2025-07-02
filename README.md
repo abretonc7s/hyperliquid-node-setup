@@ -105,19 +105,49 @@ The data directory will grow to ~100GB per day due to logs.
 
 To monitor your node:
 
-1. Check if it's syncing:
+1. Check overall node status:
 ```bash
 ./check-status.sh
 ```
 
-2. View logs:
+2. Check if the node is synced:
+```bash
+# Once the node starts serving the info endpoint (may take a few minutes)
+curl http://localhost:3001/info | jq .
+
+# The response will show:
+# - current_block: The block height your node has synced to
+# - is_synced: Whether your node is fully synced with the network
+```
+
+3. View real-time logs:
 ```bash
 # If running manually
 tail -f ~/hl/logs/node.log
 
 # If running as service
 sudo journalctl -u hyperliquid-node -f
+
+# To see only sync-related messages
+grep -i "height\|sync\|block" ~/hl/logs/node.log | tail -20
 ```
+
+4. Monitor disk usage:
+```bash
+du -sh ~/hl/data/
+```
+
+### Understanding Sync Status
+
+The node needs to sync historical data before it's fully operational. This process can take:
+- **Initial sync**: Several hours to days depending on network conditions
+- **The node is synced when**: The `is_synced` field in the info endpoint returns `true`
+- **During sync**: The `current_block` will gradually increase until it catches up with the network
+
+### Monitoring Endpoints
+
+- **Info endpoint**: `http://localhost:3001/info` - General node information and sync status
+- **Health check**: Node listens on ports 4001-4002 for peer connections
 
 ## Uninstalling
 
