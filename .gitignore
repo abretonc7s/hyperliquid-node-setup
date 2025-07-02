@@ -1,0 +1,13 @@
+# Hyperliquid node files
+hl-visor
+hl-visor.asc
+visor.json
+
+# Data and logs
+hl/
+*.log
+
+# System files
+.DS_Store
+*.swp
+*~
