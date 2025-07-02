@@ -1,13 +1,24 @@
-# Hyperliquid node files
+# Hyperliquid node binaries
 hl-visor
 hl-visor.asc
+hl-node
+hl-node.asc
 visor.json
 
-# Data and logs
+# Environment file
+.hyperliquid_env
+
+# Data directory
 hl/
+
+# Log files
 *.log
+
+# Temporary files
+*.tmp
+*.bak
+*~
 
 # System files
 .DS_Store
 *.swp
-*~

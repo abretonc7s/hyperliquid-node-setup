@@ -23,12 +23,30 @@ cd hyperliquid-node-setup
 ./setup.sh
 ```
 
+The setup script will:
+- Ask for your preferred installation path (defaults to current directory if in `/volumes/*`, otherwise `$HOME`)
+- Download and verify the Hyperliquid visor binary
+- Create necessary directories
+- Configure firewall rules
+
 3. Choose your network (Mainnet or Testnet) when prompted.
 
 4. Start the node:
 ```bash
 ./start-node.sh
 ```
+
+## Installation Path
+
+The setup script supports custom installation paths. This is useful if:
+- Your home directory has limited space
+- You want to use a dedicated volume for blockchain data
+
+When prompted for the installation path, you can:
+- Press Enter to use the default
+- Specify a custom path like `/volumes/hyperliquid`
+
+**Note**: Hyperliquid binaries are hardcoded to use `~/hl` for data storage. If you install outside your home directory, the setup script will automatically create a symlink from `~/hl` to your chosen installation path.
 
 ## Manual Setup
 
@@ -77,7 +95,11 @@ After installing as a service:
 
 ## Data Location
 
-The node stores data in `~/hl/data/`. This directory will grow to ~100GB per day due to logs.
+The node stores data in:
+- `~/hl/data/` (always, due to hardcoded paths in Hyperliquid binaries)
+- If installed outside home directory, this will be a symlink to `<install_path>/hl/`
+
+The data directory will grow to ~100GB per day due to logs.
 
 ## Monitoring
 
@@ -90,8 +112,26 @@ To monitor your node:
 
 2. View logs:
 ```bash
+# If running manually
 tail -f ~/hl/logs/node.log
+
+# If running as service
+sudo journalctl -u hyperliquid-node -f
 ```
+
+## Uninstalling
+
+To remove the node:
+
+```bash
+./uninstall.sh
+```
+
+This will:
+- Stop and remove the systemd service (if installed)
+- Remove the visor binary and configuration
+- Optionally remove all node data
+- Clean up any symlinks created during installation
 
 ## Troubleshooting
 
@@ -104,6 +144,10 @@ tail -f ~/hl/logs/node.log
 - Check your firewall settings
 - Ensure your server has a public IP
 - Verify ports are forwarded if behind NAT
+
+### Disk space issues
+- If installed in home directory, ensure you have 200GB+ free
+- Consider reinstalling to a volume with more space using the custom installation path
 
 ## Security Notes
 

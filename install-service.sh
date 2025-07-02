@@ -9,12 +9,24 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-if [ ! -f /home/$SUDO_USER/hl-visor ]; then
-    echo "Error: hl-visor not found. Please run ./setup.sh first"
+# Get the script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source the environment file if it exists
+if [ -f "$SCRIPT_DIR/.hyperliquid_env" ]; then
+    source "$SCRIPT_DIR/.hyperliquid_env"
+else
+    # Fallback to home directory if env file doesn't exist
+    HYPERLIQUID_HOME="/home/$SUDO_USER"
+fi
+
+if [ ! -f "$HYPERLIQUID_HOME/hl-visor" ]; then
+    echo "Error: hl-visor not found at $HYPERLIQUID_HOME. Please run ./setup.sh first"
     exit 1
 fi
 
 echo "Installing Hyperliquid node as systemd service..."
+echo "Installation path: $HYPERLIQUID_HOME"
 
 # Create systemd service file
 cat > /etc/systemd/system/hyperliquid-node.service << EOF
@@ -28,10 +40,10 @@ Type=simple
 Restart=always
 RestartSec=10
 User=$SUDO_USER
-WorkingDirectory=/home/$SUDO_USER
-ExecStart=/home/$SUDO_USER/hl-visor run-non-validator --write-trades --write-fills --serve-info
-StandardOutput=append:/home/$SUDO_USER/hl/logs/node.log
-StandardError=append:/home/$SUDO_USER/hl/logs/node.error.log
+WorkingDirectory=$HYPERLIQUID_HOME
+ExecStart=$HYPERLIQUID_HOME/hl-visor run-non-validator --write-trades --write-fills --serve-info
+StandardOutput=append:$HYPERLIQUID_HOME/hl/logs/node.log
+StandardError=append:$HYPERLIQUID_HOME/hl/logs/node.error.log
 
 # Resource limits
 LimitNOFILE=65536
@@ -42,8 +54,8 @@ WantedBy=multi-user.target
 EOF
 
 # Create log directory
-mkdir -p /home/$SUDO_USER/hl/logs
-chown -R $SUDO_USER:$SUDO_USER /home/$SUDO_USER/hl
+mkdir -p "$HYPERLIQUID_HOME/hl/logs"
+chown -R $SUDO_USER:$SUDO_USER "$HYPERLIQUID_HOME/hl"
 
 # Reload systemd and enable service
 systemctl daemon-reload

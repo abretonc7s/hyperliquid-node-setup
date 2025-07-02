@@ -26,11 +26,42 @@ echo "Checking system requirements..."
 
 CPUS=$(nproc)
 MEM_GB=$(free -g | awk '/^Mem:/{print $2}')
-DISK_GB=$(df -BG ~ | awk 'NR==2 {print $4}' | sed 's/G//')
 
+# Determine default installation path
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+# Get the real path in case of symlinks
+REAL_PATH="$(readlink -f "$SCRIPT_DIR")"
+if [[ "$REAL_PATH" == /volumes/* ]]; then
+    # If running from /volumes, use the current directory
+    DEFAULT_PATH="$REAL_PATH"
+else
+    # Otherwise use home directory
+    DEFAULT_PATH="$HOME"
+fi
+
+# Ask for installation path
+echo ""
+echo "Where would you like to install Hyperliquid?"
+echo "Default: $DEFAULT_PATH"
+echo "You can specify a custom path (e.g., /volumes/hyperliquid)"
+read -p "Installation path [press Enter for default]: " INSTALL_PATH
+
+# Set default if empty
+if [ -z "$INSTALL_PATH" ]; then
+    INSTALL_PATH="$DEFAULT_PATH"
+fi
+
+# Expand tilde if present
+INSTALL_PATH="${INSTALL_PATH/#\~/$HOME}"
+
+# Check disk space at the installation path
+DISK_GB=$(df -BG "$INSTALL_PATH" | awk 'NR==2 {print $4}' | sed 's/G//')
+
+echo ""
+echo "Installation path: $INSTALL_PATH"
 echo "- CPU cores: $CPUS (minimum 4 required)"
 echo "- RAM: ${MEM_GB}GB (minimum 32GB required)"
-echo "- Free disk space: ${DISK_GB}GB (minimum 200GB required)"
+echo "- Free disk space at $INSTALL_PATH: ${DISK_GB}GB (minimum 200GB required)"
 echo ""
 
 if [ "$CPUS" -lt 4 ] || [ "$MEM_GB" -lt 32 ] || [ "$DISK_GB" -lt 200 ]; then
@@ -66,7 +97,7 @@ echo "Setting up $CHAIN node..."
 
 # Create visor.json
 echo "Creating visor configuration..."
-echo "{\"chain\": \"$CHAIN\"}" > ~/visor.json
+echo "{\"chain\": \"$CHAIN\"}" > "$INSTALL_PATH/visor.json"
 
 # Download GPG key
 echo "Downloading GPG public key..."
@@ -75,15 +106,15 @@ gpg --import /tmp/pub_key.asc || echo "Warning: GPG key import failed"
 
 # Download visor binary
 echo "Downloading visor binary..."
-curl -L "$BINARY_URL" > ~/hl-visor
-chmod +x ~/hl-visor
+curl -L "$BINARY_URL" > "$INSTALL_PATH/hl-visor"
+chmod +x "$INSTALL_PATH/hl-visor"
 
 # Download and verify signature
 echo "Downloading signature..."
-curl -L "$SIG_URL" > ~/hl-visor.asc
+curl -L "$SIG_URL" > "$INSTALL_PATH/hl-visor.asc"
 
 echo "Verifying signature..."
-if gpg --verify ~/hl-visor.asc ~/hl-visor 2>/dev/null; then
+if gpg --verify "$INSTALL_PATH/hl-visor.asc" "$INSTALL_PATH/hl-visor" 2>/dev/null; then
     echo "✓ Signature verified successfully"
 else
     echo "⚠ Warning: Signature verification failed"
@@ -92,8 +123,14 @@ fi
 
 # Create directories
 echo "Creating data directories..."
-mkdir -p ~/hl/data
-mkdir -p ~/hl/logs
+mkdir -p "$INSTALL_PATH/hl/data"
+mkdir -p "$INSTALL_PATH/hl/logs"
+
+# If installing outside of home directory, create symlink for compatibility
+if [ "$INSTALL_PATH" != "$HOME" ] && [ ! -e "$HOME/hl" ]; then
+    echo "Creating symlink for data directory compatibility..."
+    ln -s "$INSTALL_PATH/hl" "$HOME/hl"
+fi
 
 # Configure firewall
 echo ""
@@ -107,14 +144,19 @@ else
     echo "⚠ ufw not found. Please manually open ports 4001 and 4002"
 fi
 
+# Save installation path for other scripts
+echo "HYPERLIQUID_HOME=\"$INSTALL_PATH\"" > "$INSTALL_PATH/.hyperliquid_env"
+
 echo ""
 echo "================================"
 echo "Setup complete!"
 echo "================================"
 echo ""
+echo "Installation path: $INSTALL_PATH"
+echo ""
 echo "To start the node, run:"
-echo "  ./start-node.sh"
+echo "  cd $INSTALL_PATH && ./start-node.sh"
 echo ""
 echo "To install as a system service, run:"
-echo "  sudo ./install-service.sh"
+echo "  cd $INSTALL_PATH && sudo ./install-service.sh"
 echo ""
