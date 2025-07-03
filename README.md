@@ -119,11 +119,22 @@ curl http://localhost:3001/info | jq .
 # - current_block: The block height your node has synced to
 # - is_synced: Whether your node is fully synced with the network
 
-# Or use the continuous monitor script
+# Or use the continuous monitor script (includes disk usage)
 ./monitor-sync.sh
 ```
 
-3. View real-time logs:
+3. Monitor disk usage and growth:
+```bash
+# The monitor-sync.sh script shows:
+# - Current data size
+# - Growth rate (MB added since last check)
+# - Available disk space
+
+# For a detailed breakdown:
+./check-status.sh
+```
+
+4. View real-time logs:
 ```bash
 # If running manually
 tail -f ~/hl/logs/node.log
@@ -146,6 +157,11 @@ The node needs to sync historical data before it's fully operational. This proce
 - **Initial sync**: Several hours to days depending on network conditions
 - **The node is synced when**: The `is_synced` field in the info endpoint returns `true`
 - **During sync**: The `current_block` will gradually increase until it catches up with the network
+
+**Sync Progress Indicators:**
+- **Disk usage growth**: Data directory will grow as blocks are synced (expect ~100GB/day)
+- **Block height**: Increases as the node catches up with the network
+- **Network connections**: Active peer connections indicate healthy syncing
 
 ### Monitoring Endpoints
 

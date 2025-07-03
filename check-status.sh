@@ -46,7 +46,20 @@ ss -tuln | grep -E "4001|4002|3001" || echo "No connections on expected ports"
 
 echo ""
 echo "Disk usage:"
-du -sh "$HYPERLIQUID_HOME/hl/data" 2>/dev/null || echo "No data directory found"
+if [ -d "$HYPERLIQUID_HOME/hl/data" ]; then
+    echo "  Data directory: $(du -sh "$HYPERLIQUID_HOME/hl/data" 2>/dev/null | cut -f1)"
+    echo "  Total hl directory: $(du -sh "$HYPERLIQUID_HOME/hl" 2>/dev/null | cut -f1)"
+    echo "  Available space: $(df -h "$HYPERLIQUID_HOME" | awk 'NR==2 {print $4}')"
+    
+    # Show breakdown if data exists
+    if [ -d "$HYPERLIQUID_HOME/hl/data" ]; then
+        echo ""
+        echo "  Breakdown:"
+        du -sh "$HYPERLIQUID_HOME/hl/data"/* 2>/dev/null | sort -hr | head -5 | sed 's/^/    /'
+    fi
+else
+    echo "  No data directory found"
+fi
 
 # Check if info endpoint is available
 echo ""
